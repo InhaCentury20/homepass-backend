@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     # 형식: mysql+pymysql://username:password@host:port/database
     # 예시: mysql+pymysql://admin:password@homepass-db.xxxxx.ap-northeast-2.rds.amazonaws.com:3306/homepass
     DATABASE_URL: str = "mysql+pymysql://user:password@localhost:3306/homepass"
+
+    # JWT 설정
+    JWT_SECRET_KEY: str = "change-this-secret"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     
     # CORS 설정
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001"]

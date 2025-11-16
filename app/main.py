@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.config import settings
+from app.database import init_db
 
 app = FastAPI(
     title="HomePass API",
@@ -33,7 +35,17 @@ def health_check():
     return {"status": "healthy"}
 
 # API 라우터 등록
-from app.api.v1 import users, announcements, applications, notifications, chatbot, places
+from app.api.v1 import (
+    users,
+    announcements,
+    applications,
+    notifications,
+    chatbot,
+    places,
+)
+
+# DB 초기화 및 시드
+init_db()
 
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(announcements.router, prefix="/api/v1")
