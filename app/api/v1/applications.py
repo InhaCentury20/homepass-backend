@@ -32,17 +32,7 @@ def _get_primary_user(db: Session) -> User:
     return user
 
 
-@router.get("", response_model=ApplicationListResponse)
-def get_applications(db: Session = Depends(get_db)) -> ApplicationListResponse:
-    user = _get_primary_user(db)
-
-    stmt = (
-        select(Application)
-        .where(Application.user_id == user.user_id)
-        .order_by(Application.applied_at.desc())
-    )
-    applications = list(db.scalars(stmt))
-
+def _build_items(applications: list[Application]) -> list[ApplicationItemSchema]:
     items: list[ApplicationItemSchema] = []
     for application in applications:
         announcement = application.announcement
@@ -73,5 +63,35 @@ def get_applications(db: Session = Depends(get_db)) -> ApplicationListResponse:
                 dday=dday,
             )
         )
+    return items
 
+
+@router.get("", response_model=ApplicationListResponse)
+def get_applications(db: Session = Depends(get_db)) -> ApplicationListResponse:
+    user = _get_primary_user(db)
+
+    stmt = (
+        select(Application)
+        .where(Application.user_id == user.user_id)
+        .order_by(Application.applied_at.desc())
+    )
+    applications = list(db.scalars(stmt))
+
+    items = _build_items(applications)
+    return ApplicationListResponse(total=len(items), items=items)
+
+
+@router.get("/{user_id}", response_model=ApplicationListResponse)
+def get_applications_by_user(user_id: int, db: Session = Depends(get_db)) -> ApplicationListResponse:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자 계정을 찾을 수 없습니다.")
+
+    stmt = (
+        select(Application)
+        .where(Application.user_id == user.user_id)
+        .order_by(Application.applied_at.desc())
+    )
+    applications = list(db.scalars(stmt))
+    items = _build_items(applications)
     return ApplicationListResponse(total=len(items), items=items)
