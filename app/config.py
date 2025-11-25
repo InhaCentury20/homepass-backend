@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # 로깅 설정
     LOG_LEVEL: str = "INFO"
     
+    # Cookie / Session
+    COOKIE_SECURE: bool = False  # HTTPS 환경이면 True
+    COOKIE_DOMAIN: str | None = None  # 필요 시 설정 (예: ".example.com")
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

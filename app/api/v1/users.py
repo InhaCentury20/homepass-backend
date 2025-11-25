@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import NotificationSetting, Preference, SubscriptionInfo, User
+from app.dependencies.auth import get_current_user
 from app.schemas import (
     AutoApplyModePayload,
     NotificationSettingPayload,
@@ -33,9 +34,12 @@ def _get_primary_user(db: Session) -> User:
 
 @router.get("/me", response_model=UserProfileResponse)
 def get_current_user_profile(
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UserProfileResponse:
-    user = _get_primary_user(db)
+    user = db.get(User, current_user.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자 계정을 찾을 수 없습니다.")
 
     subscription = user.subscription_info
     preference = user.preference

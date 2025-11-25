@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Notification, User
+from app.dependencies.auth import get_current_user
 from app.schemas import NotificationItemSchema, NotificationListResponse
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -31,8 +33,11 @@ def _parse_category(message: str | None) -> tuple[str, str]:
 
 
 @router.get("", response_model=NotificationListResponse)
-def get_notifications(db: Session = Depends(get_db)) -> NotificationListResponse:
-    user = _get_primary_user(db)
+def get_notifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> NotificationListResponse:
+    user = current_user
 
     stmt = (
         select(Notification)
@@ -70,14 +75,51 @@ def get_notifications(db: Session = Depends(get_db)) -> NotificationListResponse
     return NotificationListResponse(total=len(items), unread_count=unread_count, items=items)
 
 
-@router.post("/read")
-def mark_notification_as_read(db: Session = Depends(get_db)) -> NotificationListResponse:
-    user = _get_primary_user(db)
-    stmt = (
-        update(Notification)
-        .where(Notification.user_id == user.user_id, Notification.is_read.is_(False))
-        .values(is_read=True)
-    )
-    db.execute(stmt)
+class NotificationReadPayload(BaseModel):
+    ids: list[int] | None = None
+
+
+@router.post("/read", response_model=NotificationListResponse)
+def mark_notification_as_read(
+    payload: NotificationReadPayload | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> NotificationListResponse:
+    user = current_user
+    if payload and payload.ids:
+        stmt = (
+            update(Notification)
+            .where(
+                Notification.user_id == user.user_id,
+                Notification.notification_id.in_(payload.ids),
+            )
+            .values(is_read=True)
+        )
+        db.execute(stmt)
+    else:
+        stmt = (
+            update(Notification)
+            .where(Notification.user_id == user.user_id, Notification.is_read.is_(False))
+            .values(is_read=True)
+        )
+        db.execute(stmt)
     db.commit()
-    return get_notifications(db)
+    return get_notifications(db, current_user)
+
+
+@router.post("/{notification_id}/read", status_code=status.HTTP_200_OK)
+def mark_one_notification_as_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    user = current_user
+    # 본인 소유 확인 및 업데이트
+    notif = db.get(Notification, notification_id)
+    if not notif or notif.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다.")
+    if not notif.is_read:
+        notif.is_read = True
+        db.add(notif)
+        db.commit()
+    return {"message": "ok"}

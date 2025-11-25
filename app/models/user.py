@@ -30,5 +30,6 @@ class User(Base):
     )
     applications = relationship("Application", back_populates="user")
     notifications = relationship("Notification", back_populates="user")
+    interests = relationship("UserInterest", back_populates="user", cascade="all, delete-orphan")
 
 

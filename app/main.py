@@ -40,6 +40,7 @@ from app.api.v1 import (
     announcements,
     applications,
     notifications,
+    bookmarks,
     chatbot,
     places,
 )
@@ -51,6 +52,7 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(announcements.router, prefix="/api/v1")
 app.include_router(applications.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(bookmarks.router, prefix="/api/v1")
 app.include_router(chatbot.router, prefix="/api/v1")
 app.include_router(places.router, prefix="/api/v1")
 
