@@ -19,6 +19,7 @@ class AnnouncementSchema(BaseModel):
     longitude: Optional[float] = None
     application_end_date: Optional[datetime] = None
     scraped_at: Optional[datetime] = None
+    post_date: Optional[datetime] = None
     min_deposit: Optional[int] = None
     max_deposit: Optional[int] = None
     monthly_rent: Optional[int] = None
